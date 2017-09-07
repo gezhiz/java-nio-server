@@ -33,7 +33,8 @@ public class Server {
         MessageBuffer readBuffer  = new MessageBuffer();
         MessageBuffer writeBuffer = new MessageBuffer();
 
-        this.socketProcessor = new SocketProcessor(socketQueue, readBuffer, writeBuffer,  this.messageReaderFactory, this.messageProcessor);
+        this.socketProcessor = new SocketProcessor(socketQueue, readBuffer,
+                writeBuffer,  this.messageReaderFactory, this.messageProcessor);
 
         Thread accepterThread  = new Thread(this.socketAccepter);
         Thread processorThread = new Thread(this.socketProcessor);

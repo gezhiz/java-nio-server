@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class HttpMessageReader implements IMessageReader {
 
-    private MessageBuffer messageBuffer    = null;
+    private MessageBuffer messageBuffer    = null;//Message工厂
 
     private List<Message> completeMessages = new ArrayList<Message>();//完成读取的消息列表
     private Message       nextMessage      = null;
@@ -40,16 +40,23 @@ public class HttpMessageReader implements IMessageReader {
             return;
         }
 
-        this.nextMessage.writeToMessage(byteBuffer);
+        //把byteBuffer的所有内容写入nextMessage
+        int copiedCount = this.nextMessage.writeToMessage(byteBuffer);
+        if (copiedCount == -1) {
+            System.out.println("扩容失败，消息被丢弃");
+            return;
+        }
 
+        //解析nextMessage是否有结束标记
         int endIndex = HttpUtil.parseHttpRequest(this.nextMessage.sharedArray, this.nextMessage.offset, this.nextMessage.offset + this.nextMessage.length, (HttpHeaders) this.nextMessage.metaData);
         if(endIndex != -1){
             //找到了消息的结束标志，可以添加一条消息
-            Message message = this.messageBuffer.getMessage();
+            Message message = this.messageBuffer.getMessage();//新生成一条空的message
             message.metaData = new HttpHeaders();
 
+            //从nextMessage中把多余的消息内容移到message
             message.writePartialMessageToMessage(nextMessage, endIndex);
-
+            //nextMessage就是一条完整的消息了
             completeMessages.add(nextMessage);
             nextMessage = message;
         }

@@ -22,14 +22,28 @@ public class Main {
 
         byte[] httpResponseBytes = httpResponse.getBytes("UTF-8");
 
-        IMessageProcessor messageProcessor = (request, writeProxy) -> {
-            System.out.println("Message Received from socket: " + request.socketId);
+//        IMessageProcessor messageProcessor = (request, writeProxy) -> {
+//            System.out.println("Message Received from socket: " + request.socketId);
+//
+//            Message response = writeProxy.getMessage();
+//            response.socketId = request.socketId;
+//            response.writeToMessage(httpResponseBytes);
+//
+//            writeProxy.enqueue(response);
+//        };
+        IMessageProcessor messageProcessor = new IMessageProcessor() {
+            @Override
+            public void process(Message message, WriteProxy writeProxy) {
+                System.out.println("Message Received from socket: " + message.socketId);
 
             Message response = writeProxy.getMessage();
-            response.socketId = request.socketId;
+            response.socketId = message.socketId;
             response.writeToMessage(httpResponseBytes);
 
-            writeProxy.enqueue(response);
+            writeProxy.enqueue(response);//把消息放到writeQueue（待写队列）
+            writeProxy.enqueue(response);//把消息放到writeQueue（待写队列）
+            writeProxy.enqueue(response);//把消息放到writeQueue（待写队列）
+            }
         };
 
         Server server = new Server(9999, new HttpMessageReaderFactory(), messageProcessor);

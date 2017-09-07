@@ -32,7 +32,9 @@ public class Message {
         int remaining = byteBuffer.remaining();
 
         while(this.length + remaining > capacity){
+            //如果当前message的容量不够,则扩容
             if(!this.messageBuffer.expandMessage(this)) {
+                //扩容失败
                 return -1;
             }
         }

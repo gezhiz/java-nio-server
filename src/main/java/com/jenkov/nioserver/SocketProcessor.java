@@ -33,11 +33,13 @@ public class SocketProcessor implements Runnable {
 
     private long              nextSocketId = 16 * 1024; //start incoming socket ids from 16K - reserve bottom ids for pre-defined sockets (servers).
 
-    private Set<Socket> emptyToNonEmptySockets = new HashSet<>();
-    private Set<Socket> nonEmptyToEmptySockets = new HashSet<>();
+    private Set<Socket> emptySockets = new HashSet<>();//未写入数据的socket列表，需要注册OP_WRITE事件
+    private Set<Socket> nonEmptySockets = new HashSet<>();//写完成的队列
 
 
-    public SocketProcessor(Queue<Socket> inboundSocketQueue, MessageBuffer readMessageBuffer, MessageBuffer writeMessageBuffer, IMessageReaderFactory messageReaderFactory, IMessageProcessor messageProcessor) throws IOException {
+    public SocketProcessor(Queue<Socket> inboundSocketQueue, MessageBuffer readMessageBuffer,
+                           MessageBuffer writeMessageBuffer, IMessageReaderFactory messageReaderFactory,
+                           IMessageProcessor messageProcessor) throws IOException {
         this.inboundSocketQueue = inboundSocketQueue;
 
         this.readMessageBuffer    = readMessageBuffer;
@@ -72,7 +74,7 @@ public class SocketProcessor implements Runnable {
     public void executeCycle() throws IOException {
         takeNewSockets();//初始化socket，注册OP_READ事件
         readFromSockets();//实时获取"读就绪"的socket，进行readByteBuffer指定长度的读
-        writeToSockets();
+        writeToSockets();//注册
     }
 
 
@@ -133,6 +135,7 @@ public class SocketProcessor implements Runnable {
         if(fullMessages.size() > 0){
             for(Message message : fullMessages){
                 message.socketId = socket.socketId;
+                //处理读到的消息
                 this.messageProcessor.process(message, this.writeProxy);  //the message processor will eventually push outgoing messages into an IMessageWriter for this socket.
             }
             fullMessages.clear();
@@ -151,10 +154,10 @@ public class SocketProcessor implements Runnable {
     public void writeToSockets() throws IOException {
 
         // Take all new messages from outboundMessageQueue
-        takeNewOutboundMessages();
+        takeNewOutboundMessages();//从读完成队列中取出所有socket放入待写队列
 
         // Cancel all sockets which have no more data to write.
-        cancelEmptySockets();
+        cancelEmptySockets();//注销所有写完成队列里的socket
 
         // Register all sockets that *have* data and which are not yet registered.
         registerNonEmptySockets();
@@ -171,10 +174,12 @@ public class SocketProcessor implements Runnable {
 
                 Socket socket = (Socket) key.attachment();
 
+                //每次只处理一条写的消息，写的过程中，如果消息已经处理完成，则会把消息移除
                 socket.messageWriter.write(socket, this.writeByteBuffer);//每次只写writeByteBuffer指定长度的数据
 
                 if(socket.messageWriter.isEmpty()){
-                    this.nonEmptyToEmptySockets.add(socket);
+                    //所有消息都处理完，当前的socket被加入已完成队列
+                    this.nonEmptySockets.add(socket);
                 }
                 /*
                 There are 2 tables why keyIterator.remove() should be executed:
@@ -195,19 +200,19 @@ public class SocketProcessor implements Runnable {
     }
 
     private void registerNonEmptySockets() throws ClosedChannelException {
-        for(Socket socket : emptyToNonEmptySockets){
+        for(Socket socket : emptySockets){
             socket.socketChannel.register(this.writeSelector, SelectionKey.OP_WRITE, socket);
         }
-        emptyToNonEmptySockets.clear();
+        emptySockets.clear();
     }
 
     private void cancelEmptySockets() {
-        for(Socket socket : nonEmptyToEmptySockets){
+        for(Socket socket : nonEmptySockets){
             SelectionKey key = socket.socketChannel.keyFor(this.writeSelector);
 
             key.cancel();
         }
-        nonEmptyToEmptySockets.clear();
+        nonEmptySockets.clear();
     }
 
     private void takeNewOutboundMessages() {
@@ -216,12 +221,14 @@ public class SocketProcessor implements Runnable {
             Socket socket = this.socketMap.get(outMessage.socketId);
 
             if(socket != null){
-                MessageWriter messageWriter = socket.messageWriter;
+                MessageWriter messageWriter = socket.messageWriter;//每个socket对应一个messageWriter
                 if(messageWriter.isEmpty()){
+                    //从读完成队列里取出的消息没有任何消息需要处理，证明是新来的，需要把消息保存起来,并加入emptySockets,
                     messageWriter.enqueue(outMessage);
-                    nonEmptyToEmptySockets.remove(socket);
-                    emptyToNonEmptySockets.add(socket);    //not necessary if removed from nonEmptyToEmptySockets in prev. statement.
+                    nonEmptySockets.remove(socket);
+                    emptySockets.add(socket);    //not necessary if removed from nonEmptySockets in prev. statement.
                 } else{
+                    //不是新来的，则将消息入socket的消息队列
                    messageWriter.enqueue(outMessage);
                 }
             }

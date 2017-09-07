@@ -33,11 +33,13 @@ public class MessageWriter {
         byteBuffer.clear();
 
         if(bytesWritten >= this.messageInProgress.length){
+            //当前消息处理完成，则移除
             if(this.writeQueue.size() > 0){
                 this.messageInProgress = this.writeQueue.remove(0);
             } else {
                 this.messageInProgress = null;
                 //todo unregister from selector
+
             }
         }
     }
