@@ -91,6 +91,7 @@ public class SocketProcessor implements Runnable {
             newSocket.socketId = this.nextSocketId++;
             newSocket.socketChannel.configureBlocking(false);
 
+            //new HttpMessageReader();用工厂解耦合
             newSocket.messageReader = this.messageReaderFactory.createMessageReader();
             newSocket.messageReader.init(this.readMessageBuffer);
 
@@ -175,7 +176,7 @@ public class SocketProcessor implements Runnable {
                 Socket socket = (Socket) key.attachment();
 
                 //每次只处理一条写的消息，写的过程中，如果消息已经处理完成，则会把消息移除
-                socket.messageWriter.write(socket, this.writeByteBuffer);//每次只写writeByteBuffer指定长度的数据
+                socket.messageWriter.write(socket, this.writeByteBuffer);//每次最多只写writeByteBuffer指定长度的数据
 
                 if(socket.messageWriter.isEmpty()){
                     //所有消息都处理完，当前的socket被加入已完成队列

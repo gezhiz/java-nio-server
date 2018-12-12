@@ -7,8 +7,8 @@ import java.util.Queue;
  */
 public class WriteProxy {
 
-    private MessageBuffer messageBuffer = null;
-    private Queue        writeQueue     = null;
+    private MessageBuffer messageBuffer = null;//消息工厂
+    private Queue        writeQueue     = null;//待写的消息队列
 
     public WriteProxy(MessageBuffer messageBuffer, Queue writeQueue) {
         this.messageBuffer = messageBuffer;

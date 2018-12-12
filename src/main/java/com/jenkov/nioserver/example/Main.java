@@ -38,10 +38,8 @@ public class Main {
 
             Message response = writeProxy.getMessage();
             response.socketId = message.socketId;
-            response.writeToMessage(httpResponseBytes);
+            response.writeToMessage(httpResponseBytes);//把消息缓冲到response（message）中
 
-            writeProxy.enqueue(response);//把消息放到writeQueue（待写队列）
-            writeProxy.enqueue(response);//把消息放到writeQueue（待写队列）
             writeProxy.enqueue(response);//把消息放到writeQueue（待写队列）
             }
         };

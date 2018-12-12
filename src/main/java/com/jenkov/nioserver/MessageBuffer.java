@@ -43,7 +43,7 @@ public class MessageBuffer {
     }
 
     public Message getMessage() {
-        int nextFreeSmallBlock = this.smallMessageBufferFreeBlocks.take();
+        int nextFreeSmallBlock = this.smallMessageBufferFreeBlocks.take();//获得下一个空闲的byte数组的偏移量，分配给message
 
         if(nextFreeSmallBlock == -1) return null;
 
@@ -59,8 +59,10 @@ public class MessageBuffer {
 
     public boolean expandMessage(Message message){
         if(message.capacity == CAPACITY_SMALL){
+            //扩容成中型的message
             return moveMessage(message, this.smallMessageBufferFreeBlocks, this.mediumMessageBufferFreeBlocks, this.mediumMessageBuffer, CAPACITY_MEDIUM);
         } else if(message.capacity == CAPACITY_MEDIUM){
+            //扩容成大型的message
             return moveMessage(message, this.mediumMessageBufferFreeBlocks, this.largeMessageBufferFreeBlocks, this.largeMessageBuffer, CAPACITY_LARGE);
         } else {
             return false;

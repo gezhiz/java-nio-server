@@ -15,10 +15,10 @@ import java.util.List;
  */
 public class HttpMessageReader implements IMessageReader {
 
-    private MessageBuffer messageBuffer    = null;//Message工厂
+    private MessageBuffer messageBuffer    = null;//Message工厂，工厂里面记录了下一个要扩容的大小
 
     private List<Message> completeMessages = new ArrayList<Message>();//完成读取的消息列表
-    private Message       nextMessage      = null;
+    private Message       nextMessage      = null;//处理中的消息
 
     public HttpMessageReader() {
     }
@@ -41,7 +41,7 @@ public class HttpMessageReader implements IMessageReader {
         }
 
         //把byteBuffer的所有内容写入nextMessage
-        int copiedCount = this.nextMessage.writeToMessage(byteBuffer);
+        int copiedCount = this.nextMessage.writeToMessage(byteBuffer);//如果nextMessage不够大，则扩容
         if (copiedCount == -1) {
             System.out.println("扩容失败，消息被丢弃");
             return;

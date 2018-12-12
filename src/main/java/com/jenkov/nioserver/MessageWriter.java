@@ -11,8 +11,8 @@ import java.util.List;
 public class MessageWriter {
 
     private List<Message> writeQueue   = new ArrayList<>();
-    private Message  messageInProgress = null;
-    private int      bytesWritten      =    0;
+    private Message  messageInProgress = null;//待写入的消息
+    private int      bytesWritten      =    0;//已经写入的byte的长度
 
     public MessageWriter() {
     }
@@ -26,6 +26,7 @@ public class MessageWriter {
     }
 
     public void write(Socket socket, ByteBuffer byteBuffer) throws IOException {
+        //messageInProgress.offset是消息本身的偏移量，message天生自带offset,预留了部分空间
         byteBuffer.put(this.messageInProgress.sharedArray, this.messageInProgress.offset + this.bytesWritten, this.messageInProgress.length - this.bytesWritten);
         byteBuffer.flip();
 

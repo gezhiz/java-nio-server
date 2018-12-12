@@ -11,9 +11,9 @@ package com.jenkov.nioserver;
  */
 public class QueueIntFlip {
 
-    public int[] elements = null;
+    public int[] elements = null;//记录了偏移量
 
-    public int capacity = 0;
+    public int capacity = 0;//表示整个MessageBuffer的整个byte[]共分成几部分
     public int writePos = 0;
     public int readPos  = 0;
     public boolean flipped = false;
