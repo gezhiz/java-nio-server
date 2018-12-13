@@ -74,7 +74,7 @@ public class SocketProcessor implements Runnable {
     public void executeCycle() throws IOException {
         takeNewSockets();//初始化socket，注册OP_READ事件
         readFromSockets();//实时获取"读就绪"的socket，进行readByteBuffer指定长度的读
-        writeToSockets();//注册
+        writeToSockets();//向socket写入数据
     }
 
 
@@ -87,9 +87,10 @@ public class SocketProcessor implements Runnable {
     public void takeNewSockets() throws IOException {
         Socket newSocket = this.inboundSocketQueue.poll();//拿到队列头部的socket
 
+        //循环的读取所有新来的socket，并注册商可读（OP_READ）事件
         while(newSocket != null){
             newSocket.socketId = this.nextSocketId++;
-            newSocket.socketChannel.configureBlocking(false);
+            newSocket.socketChannel.configureBlocking(false);//使用nio模式：非阻塞模式
 
             //new HttpMessageReader();用工厂解耦合
             newSocket.messageReader = this.messageReaderFactory.createMessageReader();
@@ -100,7 +101,7 @@ public class SocketProcessor implements Runnable {
             this.socketMap.put(newSocket.socketId, newSocket);
 
             SelectionKey key = newSocket.socketChannel.register(this.readSelector, SelectionKey.OP_READ);//注册上读selector
-            key.attach(newSocket);//将newSocket附着到SelectionKey上，SelectKey对象可以通过调用atachment()方法获取到这个对象
+            key.attach(newSocket);//将newSocket附着到SelectionKey上，SelectKey对象可以通过调用attachment()方法获取到这个对象
 
             newSocket = this.inboundSocketQueue.poll();
         }
@@ -129,7 +130,7 @@ public class SocketProcessor implements Runnable {
 
     private void readFromSocket(SelectionKey key) throws IOException {
         Socket socket = (Socket) key.attachment();//获取到封装好的socket对象
-        socket.messageReader.read(socket, this.readByteBuffer);//每次只读取readByteBuffer指定长度的数据
+        socket.messageReader.read(socket, this.readByteBuffer);//读取socket内的消息
 
         List<Message> fullMessages = socket.messageReader.getMessages();
         //根据协议，哪些数据是读取完成的，对这些已经接收完的消息，可以开始处理
@@ -173,7 +174,7 @@ public class SocketProcessor implements Runnable {
             while(keyIterator.hasNext()){
                 SelectionKey key = keyIterator.next();
 
-                Socket socket = (Socket) key.attachment();
+                Socket socket = (Socket) key.attachment();//
 
                 //每次只处理一条写的消息，写的过程中，如果消息已经处理完成，则会把消息移除
                 socket.messageWriter.write(socket, this.writeByteBuffer);//每次最多只写writeByteBuffer指定长度的数据

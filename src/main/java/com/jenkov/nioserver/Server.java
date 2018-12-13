@@ -26,7 +26,7 @@ public class Server {
 
         Queue socketQueue = new ArrayBlockingQueue(1024); //move 1024 to ServerConfig
 
-        this.socketAccepter  = new SocketAccepter(tcpPort, socketQueue);
+        this.socketAccepter  = new SocketAccepter(tcpPort, socketQueue);//accept和processor之间使用socketQueue共享socket
 
 
         MessageBuffer readBuffer  = new MessageBuffer();

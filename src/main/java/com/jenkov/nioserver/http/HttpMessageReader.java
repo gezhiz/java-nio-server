@@ -33,7 +33,7 @@ public class HttpMessageReader implements IMessageReader {
     @Override
     public void read(Socket socket, ByteBuffer byteBuffer) throws IOException {
         int bytesRead = socket.read(byteBuffer);//如果读取完成所有的数据，则socket会被标记已经读完数据
-        byteBuffer.flip();
+        byteBuffer.flip();//开启读模式
 
         if(byteBuffer.remaining() == 0){
             byteBuffer.clear();
